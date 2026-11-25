@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 jobs:
   mac:
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - run: unzip -q Punchplugin.zip
@@ -31,7 +31,7 @@ jobs:
         working-directory: Punchplugin
         shell: pwsh
         run: |
-          cmake -B build -G "Visual Studio 17 2022" -A x64
+          cmake -B build
           cmake --build build --config Release --parallel 4
           New-Item out -ItemType Directory | Out-Null
           Get-ChildItem build -Recurse -Directory -Filter "PUNCH.vst3" | Select-Object -First 1 | ForEach-Object { Copy-Item $_.FullName out/PUNCH.vst3 -Recurse }
