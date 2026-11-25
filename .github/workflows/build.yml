@@ -1,0 +1,41 @@
+name: Build PUNCH
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  mac:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - run: unzip -q Punchplugin.zip
+      - name: Build
+        working-directory: Punchplugin
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release --parallel 4
+          mkdir out
+          find build -maxdepth 5 \( -name "PUNCH.component" -o -name "PUNCH.vst3" \) -exec cp -R {} out/ \;
+          for f in out/*; do codesign --force --deep -s - "$f"; done
+          tar -czf PUNCH-mac.tar.gz -C out .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PUNCH-mac
+          path: Punchplugin/PUNCH-mac.tar.gz
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: pwsh
+        run: Expand-Archive Punchplugin.zip -DestinationPath .
+      - name: Build
+        working-directory: Punchplugin
+        shell: pwsh
+        run: |
+          cmake -B build -G "Visual Studio 17 2022" -A x64
+          cmake --build build --config Release --parallel 4
+          New-Item out -ItemType Directory | Out-Null
+          Get-ChildItem build -Recurse -Directory -Filter "PUNCH.vst3" | Select-Object -First 1 | ForEach-Object { Copy-Item $_.FullName out/PUNCH.vst3 -Recurse }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PUNCH-windows-vst3
+          path: Punchplugin/out
